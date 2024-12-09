@@ -1,109 +1,187 @@
-from tkinter import *
-expression = ""
-def press(num):
-	global expression
-	expression = expression + str(num)
-	equation.set(expression)
-def equalpress():
-	try:
+import tkinter as tk
+from tkinter import ttk
+import re
 
-		global expression
-		total = str(eval(expression))
+class Calculator:
+    def __init__(self, master):
+        self.master = master
+        self.setup_window()
+        
+        self.colors = {
+            'background': '#2C3E50',
+            'display': '#34495E',
+            'button_normal': '#3498DB',
+            'button_hover': '#2980B9',
+            'text_primary': '#FFFFFF',
+            'text_secondary': '#ECF0F1'
+        }
+        
+        self.expression = ""
+        self.equation = tk.StringVar()
+        
+        self.create_ui()
+        self.setup_keyboard_bindings()
 
-		equation.set(total)
-		expression = ""
-	except:
+    def setup_window(self):
+        self.master.title("Calculator")
+        self.master.geometry("400x600")
+        self.master.resizable(False, False)
+        self.master.configure(bg='#2C3E50')
 
-		equation.set(" error ")
-		expression = ""
+    def setup_keyboard_bindings(self):
+        self.master.bind('<Key>', self.handle_keypress)
+        
+        self.master.bind('<Return>', lambda e: self.button_click('='))
+        self.master.bind('<BackSpace>', self.handle_backspace)
+        self.master.bind('<Escape>', lambda e: self.clear())
 
-def clear():
-	global expression
-	expression = ""
-	equation.set("")
+    def handle_keypress(self, event):
+        key = event.char
+        
+        if key in '0123456789.+-*/':
+            self.press(key)
+        
+        elif key == '%':
+            self.percentage()
+        
+        return 'break'
+
+    def handle_backspace(self, event):
+        if self.expression:
+            self.expression = self.expression[:-1]
+            self.equation.set(self.expression or '0')
+
+    def create_ui(self):
+        display_frame = self.create_display()
+        display_frame.pack(pady=10, padx=10, fill='x')
+
+        buttons_frame = self.create_buttons()
+        buttons_frame.pack(pady=10, padx=10, expand=True, fill='both')
+
+    def create_display(self):
+        display_frame = tk.Frame(self.master, bg=self.colors['background'])
+        
+        result_display = tk.Entry(
+            display_frame, 
+            textvariable=self.equation, 
+            font=('Arial', 24, 'bold'), 
+            justify='right', 
+            bg=self.colors['display'], 
+            fg=self.colors['text_primary'], 
+            borderwidth=0,
+            readonlybackground=self.colors['display'],
+            state='readonly'
+        )
+        result_display.pack(fill='x', expand=True)
+
+        return display_frame
+
+    def create_buttons(self):
+        buttons_frame = tk.Frame(self.master, bg=self.colors['background'])
+        
+        button_layout = [
+            ['C', '±', '%', '÷'],
+            ['7', '8', '9', '×'],
+            ['4', '5', '6', '-'],
+            ['1', '2', '3', '+'],
+            ['0', '.', '=']
+        ]
+
+        for row, button_row in enumerate(button_layout):
+            for col, button_text in enumerate(button_row):
+                button = self.create_button(buttons_frame, button_text, row, col)
+                button.grid(row=row, column=col, sticky='nsew', padx=5, pady=5)
+
+        for i in range(5):
+            buttons_frame.grid_rowconfigure(i, weight=1)
+            buttons_frame.grid_columnconfigure(i, weight=1)
+
+        return buttons_frame
+
+    def create_button(self, parent, text, row, col):
+        button_style = {
+            'text': text,
+            'font': ('Arial', 18, 'bold'),
+            'bg': self.colors['button_normal'],
+            'fg': self.colors['text_primary'],
+            'activebackground': self.colors['button_hover']
+        }
+
+        button = tk.Button(
+            parent, 
+            **button_style, 
+            command=lambda t=text: self.button_click(t)
+        )
+        
+        button.bind('<Enter>', lambda e, b=button: b.configure(bg=self.colors['button_hover']))
+        button.bind('<Leave>', lambda e, b=button: b.configure(bg=self.colors['button_normal']))
+
+        return button
+
+    def button_click(self, value):
+        if value == 'C':
+            self.clear()
+        elif value == '=':
+            self.calculate()
+        elif value == '±':
+            self.toggle_sign()
+        elif value == '%':
+            self.percentage()
+        else:
+            self.press(value)
+
+    def press(self, value):
+        # Limit input length
+        if len(self.expression) < 20:
+            self.expression += str(value)
+            self.equation.set(self.expression)
+
+    def clear(self):
+        self.expression = ""
+        self.equation.set("0")
+
+    def calculate(self):
+        try:
+            expression = self.expression.replace('÷', '/').replace('×', '*')
+            
+            if re.match(r'^[0-9+\-*/%. ]+$', expression):
+                result = str(eval(expression))
+                self.equation.set(result)
+                self.expression = result
+            else:
+                self.equation.set("Error")
+                self.expression = ""
+        except Exception:
+            self.equation.set("Error")
+            self.expression = ""
+
+    def toggle_sign(self):
+        if self.expression and self.expression[0] == '-':
+            self.expression = self.expression[1:]
+        else:
+            self.expression = '-' + self.expression
+        self.equation.set(self.expression)
+
+    def percentage(self):
+        try:
+            result = str(float(self.expression) / 100)
+            self.equation.set(result)
+            self.expression = result
+        except:
+            self.equation.set("Error")
+            self.expression = ""
+
+def main():
+    root = tk.Tk()
+    root.title("Advanced Calculator")
+    
+    try:
+        root.iconbitmap('calculator_icon.ico')
+    except:
+        pass
+    
+    app = Calculator(root)
+    root.mainloop()
 
 if __name__ == "__main__":
-	gui = Tk()
-
-	gui.configure(background="Grey")
-
-	gui.title("Simple Calculator")
-
-	gui.geometry("270x150")
-
-	equation = StringVar()
-
-	expression_field = Entry(gui, textvariable=equation)
-
-	expression_field.grid(columnspan=4, ipadx=70)
-
-	button1 = Button(gui, text=' 1 ', fg='black', bg='white',
-					command=lambda: press(1), height=1, width=7)
-	button1.grid(row=2, column=0)
-
-	button2 = Button(gui, text=' 2 ', fg='black', bg='white',
-					command=lambda: press(2), height=1, width=7)
-	button2.grid(row=2, column=1)
-
-	button3 = Button(gui, text=' 3 ', fg='black', bg='white',
-					command=lambda: press(3), height=1, width=7)
-	button3.grid(row=2, column=2)
-
-	button4 = Button(gui, text=' 4 ', fg='black', bg='white',
-					command=lambda: press(4), height=1, width=7)
-	button4.grid(row=3, column=0)
-
-	button5 = Button(gui, text=' 5 ', fg='black', bg='white',
-					command=lambda: press(5), height=1, width=7)
-	button5.grid(row=3, column=1)
-
-	button6 = Button(gui, text=' 6 ', fg='black', bg='white',
-					command=lambda: press(6), height=1, width=7)
-	button6.grid(row=3, column=2)
-
-	button7 = Button(gui, text=' 7 ', fg='black', bg='white',
-					command=lambda: press(7), height=1, width=7)
-	button7.grid(row=4, column=0)
-
-	button8 = Button(gui, text=' 8 ', fg='black', bg='white',
-					command=lambda: press(8), height=1, width=7)
-	button8.grid(row=4, column=1)
-
-	button9 = Button(gui, text=' 9 ', fg='black', bg='white',
-					command=lambda: press(9), height=1, width=7)
-	button9.grid(row=4, column=2)
-
-	button0 = Button(gui, text=' 0 ', fg='black', bg='white',
-					command=lambda: press(0), height=1, width=7)
-	button0.grid(row=5, column=0)
-
-	plus = Button(gui, text=' + ', fg='black', bg='white',
-				command=lambda: press("+"), height=1, width=7)
-	plus.grid(row=2, column=3)
-
-	minus = Button(gui, text=' - ', fg='black', bg='white',
-				command=lambda: press("-"), height=1, width=7)
-	minus.grid(row=3, column=3)
-
-	multiply = Button(gui, text=' * ', fg='black', bg='white',
-					command=lambda: press("*"), height=1, width=7)
-	multiply.grid(row=4, column=3)
-
-	divide = Button(gui, text=' / ', fg='black', bg='white',
-					command=lambda: press("/"), height=1, width=7)
-	divide.grid(row=5, column=3)
-
-	equal = Button(gui, text=' = ', fg='black', bg='white',
-				command=equalpress, height=1, width=7)
-	equal.grid(row=5, column=2)
-
-	clear = Button(gui, text='Clear', fg='black', bg='white',
-				command=clear, height=1, width=7)
-	clear.grid(row=5, column='1')
-
-
-	Decimal= Button(gui, text='.', fg='black', bg='white',
-					command=lambda: press('.'), height=1, width=7)
-	Decimal.grid(row=6, column=0)
-	
-	gui.mainloop()
+    main()
