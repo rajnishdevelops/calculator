@@ -1,4 +1,4 @@
-# 🧮 Modern Python Calculator
+# 🧮 Calculator
 
 ## 📌 Overview
 
